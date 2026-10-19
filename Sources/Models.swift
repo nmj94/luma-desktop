@@ -3,11 +3,16 @@ import Foundation
 enum BuiltinScene: String, Codable, CaseIterable, Identifiable {
     case aurora, ocean, ember, cosmos
     var id: String { rawValue }
-    var title: String {
-        switch self { case .aurora: return "极光漫游"; case .ocean: return "深海呼吸"; case .ember: return "日落余温"; case .cosmos: return "星际漂流" }
+    var title: String { title(in: .system) }
+    func title(in language: AppLanguage) -> String {
+        let key: TextKey
+        switch self { case .aurora: key = .auroraTitle; case .ocean: key = .oceanTitle; case .ember: key = .emberTitle; case .cosmos: key = .cosmosTitle }
+        return key.string(in: language)
     }
-    var subtitle: String {
-        switch self { case .aurora: return "让一抹极光，缓缓流过桌面。"; case .ocean: return "沉入蓝色，给专注留一点空间。"; case .ember: return "把日落的最后一分钟，留在这里。"; case .cosmos: return "在安静的星海里，慢慢漂流。" }
+    func subtitle(in language: AppLanguage) -> String {
+        let key: TextKey
+        switch self { case .aurora: key = .auroraSubtitle; case .ocean: key = .oceanSubtitle; case .ember: key = .emberSubtitle; case .cosmos: key = .cosmosSubtitle }
+        return key.string(in: language)
     }
     var label: String {
         switch self { case .aurora: return "AURORA"; case .ocean: return "DEEP BLUE"; case .ember: return "AFTERGLOW"; case .cosmos: return "STARDUST" }
@@ -30,12 +35,16 @@ struct VideoWallpaper: Codable, Identifiable, Equatable {
     let duration: Double
     let width: Int
     let height: Int
-    var detail: String { "\(width) × \(height)  ·  \(Int(duration.rounded())) 秒" }
+    func detail(in language: AppLanguage) -> String {
+        TextKey.videoDetail.string(in: language, arguments: [width, height, Int(duration.rounded())])
+    }
 }
 
 enum VideoFit: String, Codable, CaseIterable {
     case fill, fit
-    var title: String { self == .fill ? "填满屏幕" : "完整显示" }
+    func title(in language: AppLanguage) -> String {
+        (self == .fill ? TextKey.fillScreen : .fitScreen).string(in: language)
+    }
 }
 
 struct Preferences: Codable, Equatable {
@@ -47,6 +56,27 @@ struct Preferences: Codable, Equatable {
     var pauseInLowPower = true
     var fit = VideoFit.fill
     var brightness = 0.85
+    var language = AppLanguage.system
+
+    init() {}
+    private enum CodingKeys: String, CodingKey {
+        case appliedID, enabled, userPaused, allDisplays, pauseOnBattery, pauseInLowPower, fit, brightness, language
+    }
+    init(from decoder: Decoder) throws {
+        self.init()
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        appliedID = try values.decodeIfPresent(String.self, forKey: .appliedID) ?? appliedID
+        enabled = try values.decodeIfPresent(Bool.self, forKey: .enabled) ?? enabled
+        userPaused = try values.decodeIfPresent(Bool.self, forKey: .userPaused) ?? userPaused
+        allDisplays = try values.decodeIfPresent(Bool.self, forKey: .allDisplays) ?? allDisplays
+        pauseOnBattery = try values.decodeIfPresent(Bool.self, forKey: .pauseOnBattery) ?? pauseOnBattery
+        pauseInLowPower = try values.decodeIfPresent(Bool.self, forKey: .pauseInLowPower) ?? pauseInLowPower
+        fit = try values.decodeIfPresent(VideoFit.self, forKey: .fit) ?? fit
+        brightness = try values.decodeIfPresent(Double.self, forKey: .brightness) ?? brightness
+        // Version 1 libraries have no language field. Keep every existing setting.
+        let code = try values.decodeIfPresent(String.self, forKey: .language)
+        language = code.flatMap(AppLanguage.init(rawValue:)) ?? .system
+    }
 }
 
 struct LibraryState: Codable, Equatable {
@@ -57,14 +87,16 @@ struct LibraryState: Codable, Equatable {
 
 enum PauseReason: Equatable {
     case manual, sleeping, inactiveSession, battery, lowPower
-    var title: String {
+    func title(in language: AppLanguage) -> String {
+        let key: TextKey
         switch self {
-        case .manual: return "已暂停"
-        case .sleeping: return "屏幕休眠，已暂停"
-        case .inactiveSession: return "会话未激活，已暂停"
-        case .battery: return "使用电池，已暂停"
-        case .lowPower: return "低电量模式，已暂停"
+        case .manual: key = .paused
+        case .sleeping: key = .pausedSleeping
+        case .inactiveSession: key = .pausedSession
+        case .battery: key = .pausedBattery
+        case .lowPower: key = .pausedLowPower
         }
+        return key.string(in: language)
     }
     static func resolve(preferences: Preferences, sleeping: Bool, inactive: Bool, onBattery: Bool, lowPower: Bool) -> PauseReason? {
         if preferences.userPaused { return .manual }

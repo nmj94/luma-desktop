@@ -6,14 +6,14 @@
     <key>CFBundleName</key><string>流光桌面</string>
     <key>CFBundleDisplayName</key><string>流光桌面</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>1.1.0</string>
+    <key>CFBundleVersion</key><string>2</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
-    <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
-    <key>CFBundleLocalizations</key><array><string>zh_CN</string><string>en</string></array>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>zh-Hans</string><string>en</string></array>
 </dict></plist>

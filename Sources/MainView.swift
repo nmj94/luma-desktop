@@ -53,14 +53,15 @@ struct MainView: View {
         .background(ink)
         .foregroundStyle(Color.white)
         .preferredColorScheme(.dark)
+        .environment(\.locale, Locale(identifier: model.language.resolved().rawValue))
         .tint(mint)
         .frame(minWidth: 960, minHeight: 690)
-        .alert("遇到一点问题", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
-            Button("知道了", role: .cancel) { model.errorMessage = nil }
+        .alert(model.text(.problemTitle), isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+            Button(model.text(.dismiss), role: .cancel) { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
-        .confirmationDialog("从壁纸库移除这个视频？原始文件不受影响。", isPresented: Binding(get: { model.videoToDelete != nil }, set: { if !$0 { model.videoToDelete = nil } }), titleVisibility: .visible) {
-            if let video = model.videoToDelete { Button("移除「\(video.name)」", role: .destructive) { model.removeVideo(video); model.videoToDelete = nil } }
-            Button("取消", role: .cancel) { model.videoToDelete = nil }
+        .confirmationDialog(model.text(.removeConfirmation), isPresented: Binding(get: { model.videoToDelete != nil }, set: { if !$0 { model.videoToDelete = nil } }), titleVisibility: .visible) {
+            if let video = model.videoToDelete { Button(model.text(.removeNamedVideo, video.name), role: .destructive) { model.removeVideo(video); model.videoToDelete = nil } }
+            Button(model.text(.cancel), role: .cancel) { model.videoToDelete = nil }
         }
     }
 
@@ -70,34 +71,46 @@ struct MainView: View {
                 Image(systemName: "sparkles.rectangle.stack.fill")
                     .font(.system(size: 25, weight: .medium)).foregroundStyle(mint)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("流光").font(.system(size: 22, weight: .semibold))
+                    Text(model.text(.brand)).font(.system(size: 22, weight: .semibold))
                     Text("LUMA DESKTOP").font(.system(size: 8, weight: .semibold, design: .monospaced)).tracking(2).foregroundStyle(muted)
                 }
             }.padding(.top, 30).padding(.bottom, 43).padding(.leading, 22)
-            Text("你的空间").font(.system(size: 10, weight: .medium)).foregroundStyle(muted).padding(.leading, 24).padding(.bottom, 14)
-            navButton("壁纸库", icon: "square.grid.2x2", page: "library")
-            navButton("偏好设置", icon: "slider.horizontal.3", page: "settings")
-            navButton("使用指南", icon: "questionmark.circle", page: "help")
+            Text(model.text(.yourSpace)).font(.system(size: 10, weight: .medium)).foregroundStyle(muted).padding(.leading, 24).padding(.bottom, 14)
+            navButton(model.text(.library), icon: "square.grid.2x2", page: "library")
+            navButton(model.text(.preferences), icon: "slider.horizontal.3", page: "settings")
+            navButton(model.text(.guide), icon: "questionmark.circle", page: "help")
             Spacer()
+            Menu {
+                languagePicker
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "globe")
+                    Text(model.language.resolved().displayName(in: model.language))
+                    Spacer()
+                }.font(.system(size: 11)).foregroundStyle(muted)
+            }
+            .menuStyle(.borderlessButton)
+            .accessibilityLabel(model.text(.language))
+            .padding(.horizontal, 24).padding(.bottom, 6)
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 7) {
                     Circle().fill(model.isPlaying ? mint : muted).frame(width: 6, height: 6)
                     Text(model.status).font(.system(size: 11, weight: .medium))
                 }
-                Text(model.preferences.enabled ? model.activeTitle : "让桌面也有呼吸感")
+                Text(model.preferences.enabled ? model.activeTitle : model.text(.idleTagline))
                     .font(.system(size: 11)).foregroundStyle(muted).lineLimit(1)
                 if model.preferences.enabled {
                     HStack(spacing: 10) {
                         Button { model.togglePause() } label: {
-                            Label(model.preferences.userPaused ? "继续" : "暂停", systemImage: model.preferences.userPaused ? "play.fill" : "pause.fill")
+                            Label(model.preferences.userPaused ? model.text(.resume) : model.text(.pause), systemImage: model.preferences.userPaused ? "play.fill" : "pause.fill")
                         }
-                        Button { model.stop() } label: { Image(systemName: "stop.fill") }.help("关闭动态壁纸，恢复原桌面")
+                        Button { model.stop() } label: { Image(systemName: "stop.fill") }.help(model.text(.stopHint))
                     }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(mint)
                 }
             }
             .padding(15).frame(maxWidth: .infinity, alignment: .leading)
             .background(panel, in: RoundedRectangle(cornerRadius: 12)).padding(14)
-            HStack { Text("本地运行 · 安静陪伴"); Spacer(); Text("1.0") }
+            HStack { Text(model.text(.offlineTagline)); Spacer(); Text(model.appVersion) }
                 .font(.system(size: 9)).foregroundStyle(muted.opacity(0.7)).padding(.horizontal, 18).padding(.bottom, 18)
         }.background(Color(rgb: 0x10151D))
     }
@@ -119,15 +132,15 @@ struct MainView: View {
         Group {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("给桌面，一点生命。").font(.system(size: 25, weight: .semibold))
-                    Text("光影在流动，灵感在发生。").font(.system(size: 12)).foregroundStyle(muted)
+                    Text(model.text(.headline)).font(.system(size: 25, weight: .semibold))
+                    Text(model.text(.librarySubtitle)).font(.system(size: 12)).foregroundStyle(muted)
                 }
                 Spacer()
                 Button { model.chooseVideo() } label: {
                     HStack(spacing: 7) {
                         if model.isImporting { ProgressView().controlSize(.small) }
                         else { Image(systemName: "plus") }
-                        Text(model.isImporting ? "正在导入" : "导入视频")
+                        Text(model.isImporting ? model.text(.importing) : model.text(.importVideo))
                     }.font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 11)
                         .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 9))
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.white.opacity(0.10)))
@@ -145,13 +158,13 @@ struct MainView: View {
                         Text(model.selectedScene?.label ?? "YOUR OWN MOMENT")
                             .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(3).foregroundStyle(.white.opacity(0.65))
                         Text(model.selectedTitle).font(.system(size: 30, weight: .medium)).lineLimit(1)
-                        Text(model.selectedScene?.subtitle ?? model.selectedVideo?.detail ?? "")
+                        Text(model.selectedScene?.subtitle(in: model.language) ?? model.selectedVideo?.detail(in: model.language) ?? "")
                             .font(.system(size: 11)).foregroundStyle(.white.opacity(0.7))
                     }.padding(26)
                     VStack {
                         HStack {
                             Spacer()
-                            Label(model.previewAnimating ? "动态预览" : "预览已暂停", systemImage: model.previewAnimating ? "waveform" : "pause.fill")
+                            Label(model.previewAnimating ? model.text(.livePreview) : model.text(.pausedPreview), systemImage: model.previewAnimating ? "waveform" : "pause.fill")
                                 .font(.system(size: 9, weight: .medium)).padding(.horizontal, 10).padding(.vertical, 7)
                                 .background(.black.opacity(0.22), in: Capsule())
                         }
@@ -161,16 +174,16 @@ struct MainView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "display").font(.system(size: 17)).foregroundStyle(muted)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(model.preferences.allDisplays ? "应用到所有显示器" : "应用到主显示器").font(.system(size: 11, weight: .medium))
-                        Text("\(model.displayCount) 台已连接  ·  \(model.selectedScene != nil ? "原生动态光影" : "静音循环播放")")
+                        Text(model.preferences.allDisplays ? model.text(.applyAll) : model.text(.applyPrimary)).font(.system(size: 11, weight: .medium))
+                        Text(model.text(.displaySummary, model.displayCount, model.text(model.selectedScene != nil ? .nativeAnimation : .mutedLoop)))
                             .font(.system(size: 10)).foregroundStyle(muted)
                     }
                     Spacer()
                     if model.preferences.enabled && model.preferences.appliedID == model.selectedID {
-                        Label("已应用", systemImage: "checkmark.circle.fill").font(.system(size: 11)).foregroundStyle(mint)
+                        Label(model.text(.applied), systemImage: "checkmark.circle.fill").font(.system(size: 11)).foregroundStyle(mint)
                     }
                     Button { model.applySelected() } label: {
-                        HStack(spacing: 7) { Image(systemName: "play.fill").font(.system(size: 10)); Text("设为动态壁纸").font(.system(size: 12, weight: .semibold)) }
+                        HStack(spacing: 7) { Image(systemName: "play.fill").font(.system(size: 10)); Text(model.text(.applyWallpaper)).font(.system(size: 12, weight: .semibold)) }
                             .foregroundStyle(Color(rgb: 0x142B24)).padding(.horizontal, 18).padding(.vertical, 12)
                             .background(mint, in: RoundedRectangle(cornerRadius: 9))
                     }.buttonStyle(.plain)
@@ -181,46 +194,58 @@ struct MainView: View {
 
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 20) {
-                    filterButton("全部壁纸", id: "all")
-                    filterButton("内置精选", id: "builtin")
-                    filterButton("我的视频", id: "videos")
+                    filterButton(model.text(.allWallpapers), id: "all")
+                    filterButton(model.text(.builtins), id: "builtin")
+                    filterButton(model.text(.myVideos), id: "videos")
                     Spacer()
-                    Text("\(model.libraryFilter == "videos" ? model.videos.count : model.libraryFilter == "builtin" ? 4 : 4 + model.videos.count) 款壁纸")
+                    Text(wallpaperCountText)
                         .font(.system(size: 10)).foregroundStyle(muted)
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 14)], spacing: 16) {
                     if model.libraryFilter != "videos" {
                         ForEach(BuiltinScene.allCases) { scene in
-                            wallpaperCard(id: scene.id, title: scene.title, detail: "内置 · 动态光影") {
+                            wallpaperCard(id: scene.id, title: scene.title(in: model.language), detail: model.text(.builtinDetail)) {
                                 ScenePreview(scene: scene, animated: false).id(scene)
                             }
                         }
                     }
                     if model.libraryFilter != "builtin" {
                         ForEach(model.videos) { video in
-                            wallpaperCard(id: video.id, title: video.name, detail: video.detail) {
+                            wallpaperCard(id: video.id, title: video.name, detail: video.detail(in: model.language)) {
                                 if let name = video.thumbnailName, let image = NSImage(contentsOf: model.mediaURL(name)) {
                                     Image(nsImage: image).resizable().scaledToFill()
                                 } else { ZStack { panel; Image(systemName: "film").font(.largeTitle).foregroundStyle(muted) } }
                             }
-                            .contextMenu { Button("从壁纸库移除", role: .destructive) { model.videoToDelete = video } }
+                            .contextMenu { Button(model.text(.removeFromLibrary), role: .destructive) { model.videoToDelete = video } }
                         }
                     }
                 }
                 if model.libraryFilter == "videos" && model.videos.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "film.stack").font(.system(size: 28)).foregroundStyle(muted)
-                        Text("收藏一个会动的瞬间").font(.system(size: 13, weight: .medium))
-                        Text("导入 MP4、MOV 或其他系统支持的视频，就能成为桌面。")
+                        Text(model.text(.emptyTitle)).font(.system(size: 13, weight: .medium))
+                        Text(model.text(.emptyDescription))
                             .font(.system(size: 11)).foregroundStyle(muted)
-                        Button("导入第一个视频") { model.chooseVideo() }.buttonStyle(.bordered).disabled(model.isImporting)
+                        Button(model.text(.importFirst)) { model.chooseVideo() }.buttonStyle(.bordered).disabled(model.isImporting)
                     }.frame(maxWidth: .infinity).padding(30).background(panel, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
             HStack(spacing: 6) {
                 Image(systemName: "leaf")
-                Text("屏幕休眠时自动暂停  ·  关闭窗口后可从菜单栏继续控制")
+                Text(model.text(.libraryFooter))
             }.font(.system(size: 10)).foregroundStyle(muted.opacity(0.8))
+        }
+    }
+    private var wallpaperCountText: String {
+        let count = model.libraryFilter == "videos" ? model.videos.count : model.libraryFilter == "builtin" ? BuiltinScene.allCases.count : BuiltinScene.allCases.count + model.videos.count
+        return count == 1 ? model.text(.oneWallpaper) : model.text(.wallpaperCount, count)
+    }
+
+    private var languagePicker: some View {
+        Picker(model.text(.language), selection: preference(\.language)) {
+            ForEach(AppLanguage.allCases) { language in
+                Text(language.displayName(in: model.language)).tag(language)
+            }
         }
     }
     private func filterButton(_ text: String, id: String) -> some View {
@@ -251,48 +276,52 @@ struct MainView: View {
 
     private var settings: some View {
         Group {
-            pageHeader("让流光，适合你的节奏。", subtitle: "这些设置会自动保存。")
-            settingsSection("显示与播放", icon: "display") {
-                Toggle("在所有显示器上播放", isOn: preference(\.allDisplays))
-                Text("关闭后只使用系统设置中的主显示器。插拔显示器后会自动适配。")
+            pageHeader(model.text(.settingsHeadline), subtitle: model.text(.settingsSubtitle))
+            settingsSection(model.text(.language), icon: "globe") {
+                languagePicker.pickerStyle(.segmented)
+                Text(model.text(.languageHint)).font(.system(size: 11)).foregroundStyle(muted)
+            }
+            settingsSection(model.text(.displayPlayback), icon: "display") {
+                Toggle(model.text(.playAllDisplays), isOn: preference(\.allDisplays))
+                Text(model.text(.displayHint))
                     .font(.system(size: 11)).foregroundStyle(muted)
                 Divider().padding(.vertical, 8)
                 HStack {
-                    Text("视频画面"); Spacer()
-                    Picker("视频画面", selection: preference(\.fit)) {
-                        ForEach(VideoFit.allCases, id: \.self) { Text($0.title).tag($0) }
+                    Text(model.text(.videoScaling)); Spacer()
+                    Picker(model.text(.videoScaling), selection: preference(\.fit)) {
+                        ForEach(VideoFit.allCases, id: \.self) { Text($0.title(in: model.language)).tag($0) }
                     }.labelsHidden().frame(width: 150)
                 }
                 HStack(spacing: 16) {
-                    Text("壁纸亮度")
+                    Text(model.text(.brightness))
                     Slider(value: preference(\.brightness), in: 0.15...1)
                     Text("\(Int(model.preferences.brightness * 100))%").monospacedDigit().foregroundStyle(muted).frame(width: 38)
                 }.padding(.top, 8)
-                Text("视频始终静音，避免打扰。亮度只影响动态壁纸。")
+                Text(model.text(.mutedHint))
                     .font(.system(size: 11)).foregroundStyle(muted)
             }
-            settingsSection("省电与启动", icon: "leaf") {
-                Toggle("使用电池时暂停", isOn: preference(\.pauseOnBattery))
-                Toggle("低电量模式下暂停", isOn: preference(\.pauseInLowPower)).padding(.top, 10)
-                Text("屏幕或电脑休眠、切换到其他登录会话时也会自动暂停。")
+            settingsSection(model.text(.powerStartup), icon: "leaf") {
+                Toggle(model.text(.pauseOnBattery), isOn: preference(\.pauseOnBattery))
+                Toggle(model.text(.pauseLowPower), isOn: preference(\.pauseInLowPower)).padding(.top, 10)
+                Text(model.text(.autoPauseHint))
                     .font(.system(size: 11)).foregroundStyle(muted)
                 Divider().padding(.vertical, 8)
-                Toggle("登录 Mac 时启动", isOn: Binding(get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
-                Text("再次打开应用时，会恢复上次启用的壁纸和暂停状态。")
+                Toggle(model.text(.launchAtLogin), isOn: Binding(get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
+                Text(model.text(.restoreHint))
                     .font(.system(size: 11)).foregroundStyle(muted)
                 if model.loginNeedsApproval {
-                    Button("前往系统设置允许登录启动") { SMAppService.openSystemSettingsLoginItems() }
+                    Button(model.text(.approveLogin)) { SMAppService.openSystemSettingsLoginItems() }
                 }
             }
-            settingsSection("壁纸文件", icon: "folder") {
+            settingsSection(model.text(.wallpaperFiles), icon: "folder") {
                 HStack {
                     VStack(alignment: .leading, spacing: 7) {
-                        Text("已导入 \(model.videos.count) 个视频")
-                        Text("视频副本保存在本机，右键点击视频卡片可以移除。")
+                        Text(model.text(.importedCount, model.videos.count))
+                        Text(model.text(.importedHint))
                             .font(.system(size: 11)).foregroundStyle(muted)
                     }
                     Spacer()
-                    Button("打开文件夹") { NSWorkspace.shared.open(model.store.mediaDirectory) }
+                    Button(model.text(.openFolder)) { NSWorkspace.shared.open(model.store.mediaDirectory) }
                 }
             }
         }.font(.system(size: 12))
@@ -315,21 +344,21 @@ struct MainView: View {
     }
     private var help: some View {
         Group {
-            pageHeader("留一片喜欢的风景。", subtitle: "三步开始，让桌面缓缓动起来。")
-            settingsSection("01   挑一款壁纸", icon: "square.grid.2x2") {
-                Text("在壁纸库里点击内置光影，或导入自己的视频。上方会显示动态预览。")
+            pageHeader(model.text(.guideHeadline), subtitle: model.text(.guideSubtitle))
+            settingsSection(model.text(.guideStep1), icon: "square.grid.2x2") {
+                Text(model.text(.guideStep1Body))
             }
-            settingsSection("02   设为动态壁纸", icon: "play.rectangle") {
-                Text("点击「设为动态壁纸」。壁纸在桌面图标下方播放，桌面文件仍可正常点击。")
+            settingsSection(model.text(.guideStep2), icon: "play.rectangle") {
+                Text(model.text(.guideStep2Body))
             }
-            settingsSection("03   关掉窗口，继续享受", icon: "menubar.rectangle") {
-                Text("关闭这个窗口后壁纸会继续播放。点击屏幕顶部菜单栏的流光图标，可以暂停、恢复、打开壁纸库或退出。")
+            settingsSection(model.text(.guideStep3), icon: "menubar.rectangle") {
+                Text(model.text(.guideStep3Body))
             }
-            settingsSection("你可能想知道", icon: "info.circle") {
-                Text("• 点击停止或退出应用，会立即显示原来的系统壁纸。\n\n• 推荐使用 H.264 / HEVC 编码的 MP4 或 MOV。视频会静音循环，循环接缝取决于素材。\n\n• 动态壁纸用于登录后的桌面，不会修改锁定屏幕或屏幕保护程序。\n\n• 导入会复制视频到本机壁纸库，需要相应的磁盘空间。\n\n• 首次使用无需网络、屏幕录制权限或辅助功能权限。")
+            settingsSection(model.text(.goodToKnow), icon: "info.circle") {
+                Text(model.text(.guideDetails))
                     .foregroundStyle(muted).lineSpacing(4)
             }
-            Text("流光桌面 1.0  /  为 macOS 而生").font(.system(size: 10)).foregroundStyle(muted)
+            Text(model.text(.guideFooter, model.appVersion)).font(.system(size: 10)).foregroundStyle(muted)
         }.font(.system(size: 12))
     }
 }

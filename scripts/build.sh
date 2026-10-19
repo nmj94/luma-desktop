@@ -10,6 +10,9 @@ swiftc -swift-version 5 -parse-as-library -O -target "$(uname -m)-apple-macos13.
     Sources/*.swift -o "$APP/Contents/MacOS/LumaDesktop" \
     -framework AppKit -framework SwiftUI -framework AVFoundation -framework QuartzCore -framework ServiceManagement -framework IOKit
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+for localization in Resources/*.lproj; do
+    cp -R "$localization" "$APP/Contents/Resources/"
+done
 swift scripts/make-icon.swift "$PROJECT_ROOT/build/AppIcon.iconset"
 python3 scripts/package-icon.py "$PROJECT_ROOT/build/AppIcon.iconset" "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$APP"

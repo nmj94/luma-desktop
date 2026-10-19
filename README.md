@@ -1,18 +1,14 @@
 # 流光桌面 · Luma Desktop
 
-[简体中文](#zh-cn) | [English](#en)
+**简体中文** | [English](README.en.md)
 
-给桌面，一点生命。 / Bring your desktop to life.
+给桌面，一点生命。
 
-![流光桌面壁纸库 / Luma Desktop wallpaper library](docs/images/library.png)
-
-<a id="zh-cn"></a>
-
-## 简体中文
+![流光桌面中文版壁纸库](docs/images/library.png)
 
 流光桌面是一个使用 Swift、SwiftUI、AppKit 和 AVFoundation 编写的 macOS 原生动态壁纸应用。它支持内置动态光影、本地视频壁纸和菜单栏控制，无需联网，也不依赖网页容器。
 
-应用界面目前为简体中文，本说明提供中文和英文两个版本。
+界面支持简体中文和英文，默认跟随系统；也可以在侧栏或偏好设置中手动切换。
 
 ### 下载与使用
 
@@ -27,6 +23,7 @@
 
 ### 功能
 
+- **中英文界面：** 跟随系统或手动切换，立即生效并自动保存，无需重启。
 - **四款内置动态背景：** 极光漫游、深海呼吸、日落余温、星际漂流，使用 Core Animation 绘制并适配屏幕尺寸。
 - **本地视频壁纸：** 导入视频、生成缩略图、静音循环播放；推荐 H.264 / HEVC 编码的 MP4、MOV。
 - **独立预览：** 点击壁纸卡片可预览，确认应用后才替换桌面。
@@ -35,6 +32,12 @@
 - **播放与节能：** 手动暂停，屏幕或电脑休眠、非活动登录会话时自动暂停；可选电池供电暂停和低电量模式暂停。
 - **启动与恢复：** 可选登录启动，保存壁纸库、设置、最近应用的壁纸及手动暂停状态。
 - **保留桌面操作：** 壁纸位于桌面图标下方，不拦截鼠标操作，不修改系统原壁纸文件。
+
+### 切换界面语言
+
+点击侧栏底部的地球图标，或进入「偏好设置 → 界面语言」，选择「跟随系统」「简体中文」或「English」。切换会同步更新壁纸库、设置、使用指南、应用菜单与菜单栏操作，并保留壁纸和播放状态。
+
+「跟随系统」会选择系统首选语言列表中的中文或英文；没有匹配项时使用英文。旧版本的壁纸库会保留，并默认使用「跟随系统」。
 
 ### 从源码构建
 
@@ -56,9 +59,9 @@ cd luma-desktop
 ./scripts/test.sh
 ```
 
-检查包含状态与持久化测试，以及真实桌面窗口、视频导入、缩略图、循环、暂停恢复、删除副本等流程。脚本会生成一个短视频，使用独立临时壁纸库，短暂创建桌面窗口，随后清理窗口并退出，不修改正式壁纸库。
+检查包含中英文切换、语言偏好持久化、旧版配置迁移、状态与存储测试，以及真实桌面窗口、视频导入、缩略图、循环、暂停恢复、删除副本等流程。脚本会生成一个短视频，使用独立临时壁纸库，短暂创建桌面窗口，随后清理窗口并退出，不修改正式壁纸库。
 
-已在上述测试环境通过 **15 项模型检查和 25 项集成检查**。报告和界面截图位于 `build/test-artifacts/`。这些结果不代表已经验证多台实体显示器、所有 macOS 版本或实际关机登录流程。
+已在上述测试环境通过 **26 项模型检查和 32 项集成检查**。报告和界面截图位于 `build/test-artifacts/`。这些结果不代表已经验证多台实体显示器、所有 macOS 版本或实际关机登录流程。
 
 ### 文件与隐私
 
@@ -81,102 +84,29 @@ cd luma-desktop
 - 开启登录启动后，建议保持应用位置不变。
 - 下载的预编译包尚未完成 Developer ID 签名和 Apple 公证。
 
----
+### 项目结构
 
-<a id="en"></a>
-
-## English
-
-Luma Desktop is a native macOS live wallpaper app built with Swift, SwiftUI, AppKit, and AVFoundation. It offers animated backgrounds, local video wallpapers, and menu bar controls. The app runs offline without a web container.
-
-The application interface is currently in Simplified Chinese. This README is available in both Chinese and English.
-
-### Download and use
-
-1. Download the [app archive for Apple Silicon Macs](downloads/LumaDesktop-macOS-AppleSilicon.zip). On the file page, use the download button to save the archive.
-2. Extract it and open `流光桌面.app`. You can also move the app to your Applications folder.
-3. Choose a built-in wallpaper, or click **导入视频** (Import Video) to select a local video.
-4. Click **设为动态壁纸** (Set as Live Wallpaper).
-
-On first launch, the app only displays a preview; your desktop changes when you apply a wallpaper. Closing the main window keeps the wallpaper running. Use the menu bar icon to pause, resume, stop, reopen the library, or quit. Stopping or quitting reveals your original system wallpaper.
-
-**Requirements:** The supplied archive is for Apple Silicon Macs running macOS 13 or later. It has been tested on macOS 27.0.1. The app bundle is locally ad-hoc signed; it has no Developer ID signature or Apple notarization. You can also build it from source as described below.
-
-### Features
-
-- **Four animated backgrounds:** Aurora, Deep Blue, Afterglow, and Stardust, rendered with Core Animation and scaled to fit the display.
-- **Local video wallpapers:** Import videos, generate thumbnails, and loop playback with audio muted. H.264 / HEVC videos in MP4 or MOV containers are recommended.
-- **Independent preview:** Selecting a card previews the wallpaper; the desktop changes only after you apply it.
-- **Multiple displays:** Apply to all displays or the primary display, with automatic updates when displays are connected or disconnected.
-- **Appearance controls:** Fill or fit video scaling and wallpaper brightness adjustment.
-- **Playback and power saving:** Manual pause; automatic pause during display or system sleep and inactive login sessions; optional pause on battery power or in Low Power Mode.
-- **Startup and restoration:** Optional launch at login, a persistent library and settings, and restoration of the last applied wallpaper and manual pause state.
-- **Normal desktop interaction:** Wallpapers sit below desktop icons, ignore mouse input, and leave the original system wallpaper files intact.
-
-### Build from source
-
-You need macOS, Apple Command Line Tools with the Swift compiler, and Python 3. No third-party Swift packages are required.
-
-```sh
-git clone https://github.com/nmj94/luma-desktop.git
-cd luma-desktop
-./scripts/build.sh
-```
-
-The output is `dist/流光桌面.app`. The build script compiles for the architecture of the current Mac, generates the app icon, and applies a local signature. The source has not been tested on a physical Intel Mac.
-
-### Run checks
-
-Build the app and install `ffmpeg`, then run:
-
-```sh
-./scripts/test.sh
-```
-
-The checks cover state and persistence, actual desktop windows, video import, thumbnail generation, looping, pause and resume, and removal of imported copies. The script generates a short video and uses an isolated temporary library. It briefly creates desktop windows, cleans them up, and exits without modifying the normal wallpaper library.
-
-**15 model checks and 25 integration checks** passed in the environment described above. Reports and UI screenshots are saved to `build/test-artifacts/`. These results do not establish coverage of multiple physical displays, every macOS version, or an actual reboot and login sequence.
-
-### Files and privacy
-
-The app itself does not connect to the internet or require Screen Recording or Accessibility permissions. Imported videos are copied to:
-
-```text
-~/Library/Application Support/LumaDesktop/Media/
-```
-
-Settings are stored in `library.json` alongside the `Media` folder. Right-clicking a video card lets you remove the app's copy and thumbnail while keeping the original video intact. You can open the media folder from Preferences.
-
-The repository includes source code, documentation, an app screenshot, and a downloadable app archive. Temporary build caches, test media, and user-imported videos are excluded from version control.
-
-### Known limitations
-
-- Wallpapers run on the logged-in desktop; they do not replace the lock screen or screen saver.
-- Each display uses a separate player, so frame-perfect synchronization is not guaranteed. High-resolution or multi-display playback uses more resources.
-- Battery power status is refreshed approximately every 15 seconds. Sleep and Low Power Mode changes are handled through system notifications.
-- The smoothness of a video loop depends on its first and last frames.
-- Keep the app in a stable location after enabling launch at login.
-- The downloadable build has no Developer ID signature or Apple notarization.
-
----
-
-## 项目结构 / Project structure
-
-| 路径 / Path | 用途 / Purpose |
+| 路径 | 用途 |
 | --- | --- |
-| `Sources/MainView.swift` | 中文壁纸库、预览与设置 / Chinese library, preview, and settings UI |
-| `Sources/AppModel.swift` | 导入、存储、节能与登录启动 / Import, persistence, power policies, and launch at login |
-| `Sources/WallpaperEngine.swift` | 桌面窗口与视频播放 / Desktop windows and video playback |
-| `Sources/SceneView.swift` | 原生动态场景 / Native animated scenes |
-| `Sources/Models.swift` | 数据模型、存储与暂停策略 / Data models, storage, and pause policies |
-| `Sources/main.swift` | 应用生命周期与菜单栏 / App lifecycle and menu bar |
-| `Tests/` | 模型检查 / Model checks |
-| `Sources/IntegrationChecks.swift` | 应用内集成检查 / In-app integration checks |
-| `scripts/` | 构建、图标生成与验证 / Build, icon generation, and validation |
-| `docs/images/` | 界面截图 / UI screenshot |
-| `downloads/` | Apple 芯片 Mac 应用压缩包 / App archive for Apple Silicon Macs |
+| `Sources/Localization.swift` | 中英文文案、语言选择与错误提示 |
+| `Sources/MainView.swift` | 壁纸库、预览与设置界面 |
+| `Sources/AppModel.swift` | 导入、存储、节能与登录启动 |
+| `Sources/WallpaperEngine.swift` | 桌面窗口与视频播放 |
+| `Sources/SceneView.swift` | 原生动态场景 |
+| `Sources/Models.swift` | 数据模型、兼容旧版的存储与暂停策略 |
+| `Sources/main.swift` | 应用生命周期与菜单栏 |
+| `Resources/*.lproj/` | 系统显示的应用名称 |
+| `Tests/` | 模型与本地化检查 |
+| `Sources/IntegrationChecks.swift` | 应用内集成检查 |
+| `scripts/` | 构建、图标生成与验证 |
+| `docs/images/` | 中英文界面截图 |
+| `downloads/` | Apple 芯片 Mac 应用压缩包 |
 
-## 参考文档 / References
+### 参考文档
 
-- [Apple: CGWindowLevelKey](https://developer.apple.com/documentation/coregraphics/cgwindowlevelkey)
-- [Apple: AVPlayerLooper](https://developer.apple.com/documentation/avfoundation/avplayerlooper)
+- [Apple：CGWindowLevelKey](https://developer.apple.com/documentation/coregraphics/cgwindowlevelkey)
+- [Apple：AVPlayerLooper](https://developer.apple.com/documentation/avfoundation/avplayerlooper)
+
+---
+
+[English documentation →](README.en.md)

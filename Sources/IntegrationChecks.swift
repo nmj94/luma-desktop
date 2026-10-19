@@ -19,7 +19,30 @@ func runIntegrationChecks(model: AppModel, window: NSWindow) async {
     }
     check(window.isVisible, "主窗口可见")
     check(model.engine.windows.isEmpty, "首次运行不会自动覆盖桌面")
+    model.updatePreferences { $0.language = .simplifiedChinese }
+    try? await Task.sleep(nanoseconds: 350_000_000)
+    check(model.selectedTitle == "极光漫游" && window.title == "流光桌面" && NSApp.mainMenu?.items[1].title == "文件", "中文界面与原生菜单即时切换")
     snapshot("library")
+    snapshot("library-zh")
+    model.page = "settings"
+    try? await Task.sleep(nanoseconds: 250_000_000)
+    snapshot("settings-zh")
+    model.page = "help"
+    try? await Task.sleep(nanoseconds: 250_000_000)
+    snapshot("guide-zh")
+    model.updatePreferences { $0.language = .english }
+    try? await Task.sleep(nanoseconds: 250_000_000)
+    snapshot("guide-en")
+    model.page = "library"
+    try? await Task.sleep(nanoseconds: 350_000_000)
+    check(model.selectedTitle == "Aurora" && model.status == "Not running" && window.title == "Luma Desktop" && NSApp.mainMenu?.items[1].title == "File", "英文界面与原生菜单即时切换")
+    snapshot("library-en")
+    let statusMenu = NSMenu()
+    (NSApp.delegate as? AppDelegate)?.menuWillOpen(statusMenu)
+    check(statusMenu.items.contains { $0.title == "Open Wallpaper Library" } && statusMenu.items.contains { $0.title == "Quit Luma Desktop" }, "菜单栏操作切换为英文")
+    let reopened = AppModel(root: model.store.root, observeSystem: false)
+    check(reopened.language == .english && reopened.selectedTitle == "Aurora", "重新读取应用设置后保留英文选择")
+    check(model.describe(WallpaperError.missingVideo) == "This video could not be found. Please import it again.", "应用错误信息使用所选语言")
     for scene in BuiltinScene.allCases {
         model.selectedID = scene.rawValue; model.applySelected()
         check(model.engine.windows.count == NSScreen.screens.count, "\(scene.title)：每个显示器都有桌面窗口")
@@ -28,6 +51,10 @@ func runIntegrationChecks(model: AppModel, window: NSWindow) async {
     }
     model.togglePause()
     check(model.pauseReason == .manual, "内置壁纸手动暂停")
+    let desktopIDs = model.engine.windows.map { ObjectIdentifier($0) }
+    model.updatePreferences { $0.language = .simplifiedChinese }
+    check(model.pauseReason == .manual && model.status == "已暂停" && model.engine.windows.map { ObjectIdentifier($0) } == desktopIDs, "切换语言保持壁纸窗口及手动暂停状态")
+    model.updatePreferences { $0.language = .english }
     model.togglePause()
     check(model.pauseReason == nil, "内置壁纸恢复")
     model.updatePreferences { $0.allDisplays = false; $0.brightness = 0.64; $0.fit = .fit }
@@ -41,6 +68,7 @@ func runIntegrationChecks(model: AppModel, window: NSWindow) async {
     model.page = "settings"
     try? await Task.sleep(nanoseconds: 350_000_000)
     snapshot("settings")
+    snapshot("settings-en")
     model.page = "library"
     if let videoPath = environment["LUMA_TEST_VIDEO"] {
         do {
@@ -56,6 +84,11 @@ func runIntegrationChecks(model: AppModel, window: NSWindow) async {
             check(model.engine.player?.currentItem !== firstItem && model.engine.player?.rate == 1, "视频结束后进入下一轮循环")
             model.togglePause()
             let pausedTime = model.engine.player?.currentTime().seconds ?? -1
+            let pausedPlayer = model.engine.player
+            let pausedItem = model.engine.player?.currentItem
+            model.updatePreferences { $0.language = .simplifiedChinese }
+            model.updatePreferences { $0.language = .english }
+            check(model.engine.player === pausedPlayer && model.engine.player?.currentItem === pausedItem && model.engine.player?.rate == 0, "切换语言不重建播放器或重启已暂停的视频")
             try? await Task.sleep(nanoseconds: 250_000_000)
             check(model.engine.player?.rate == 0 && abs((model.engine.player?.currentTime().seconds ?? -2) - pausedTime) < 0.05, "暂停后视频进度不再前进")
             model.togglePause()

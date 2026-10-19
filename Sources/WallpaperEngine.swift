@@ -36,12 +36,12 @@ final class WallpaperEngine {
     private var surfaces: [VideoSurface] = []
     private var dimLayers: [CALayer] = []
     private var itemObservations: [NSKeyValueObservation] = []
-    var onPlaybackError: ((String) -> Void)?
+    var onPlaybackError: ((Error) -> Void)?
 
     func apply(id: String, videoURL: URL?, preferences: Preferences, paused: Bool) throws {
         let scene = BuiltinScene(rawValue: id)
         guard scene != nil || (videoURL != nil && FileManager.default.fileExists(atPath: videoURL!.path)) else {
-            throw NSError(domain: "LumaDesktop", code: 1, userInfo: [NSLocalizedDescriptionKey: "找不到这个视频，请重新导入。"])
+            throw WallpaperError.missingVideo
         }
         stop()
         let screens = preferences.allDisplays ? NSScreen.screens : Array(NSScreen.screens.prefix(1))
@@ -71,8 +71,8 @@ final class WallpaperEngine {
                 loopers.append(AVPlayerLooper(player: queue, templateItem: AVPlayerItem(url: videoURL)))
                 itemObservations.append(queue.observe(\.currentItem?.status, options: [.new]) { [weak self] queue, _ in
                     guard queue.currentItem?.status == .failed else { return }
-                    let message = queue.currentItem?.error?.localizedDescription ?? "视频播放失败，请尝试其他视频。"
-                    Task { @MainActor in self?.onPlaybackError?(message) }
+                    let error = queue.currentItem?.error ?? WallpaperError.playbackFailed
+                    Task { @MainActor in self?.onPlaybackError?(error) }
                 })
                 let view = VideoSurface(player: queue, fit: preferences.fit)
                 surfaces.append(view); root = view

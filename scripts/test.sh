@@ -3,7 +3,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 mkdir -p build/module-cache build/test-artifacts
-swiftc -swift-version 5 -module-cache-path "$PROJECT_ROOT/build/module-cache" Sources/Models.swift Tests/ModelChecks.swift -o build/model-checks
+swiftc -swift-version 5 -module-cache-path "$PROJECT_ROOT/build/module-cache" Sources/Localization.swift Sources/Models.swift Tests/ModelChecks.swift -o build/model-checks
 build/model-checks
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=640x360:rate=24' -t 1.2 -an -c:v libx264 -pix_fmt yuv420p build/test-artifacts/sample.mp4
 LUMA_TEST_ROOT="$(mktemp -d "$PROJECT_ROOT/build/test-state.XXXXXX")" \

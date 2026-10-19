@@ -28,16 +28,26 @@ final class AppModel: ObservableObject {
     private var systemSleeping = false
     private var inactive = false
     var onStatusChange: (() -> Void)?
+    var onLanguageChange: (() -> Void)?
 
     var preferences: Preferences { state.preferences }
+    var language: AppLanguage { preferences.language }
+    var appVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0" }
+    func text(_ key: TextKey, _ arguments: CVarArg...) -> String {
+        key.string(in: language, arguments: arguments)
+    }
+    func describe(_ error: Error) -> String {
+        if let error = error as? WallpaperError { return text(error.key) }
+        return error.localizedDescription
+    }
     var videos: [VideoWallpaper] { state.videos }
     var selectedScene: BuiltinScene? { BuiltinScene(rawValue: selectedID) }
     var selectedVideo: VideoWallpaper? { videos.first { $0.id == selectedID } }
-    var selectedTitle: String { selectedScene?.title ?? selectedVideo?.name ?? "选择壁纸" }
+    var selectedTitle: String { selectedScene?.title(in: language) ?? selectedVideo?.name ?? text(.chooseWallpaper) }
     var activeTitle: String {
-        BuiltinScene(rawValue: preferences.appliedID)?.title ?? videos.first { $0.id == preferences.appliedID }?.name ?? "未选择"
+        BuiltinScene(rawValue: preferences.appliedID)?.title(in: language) ?? videos.first { $0.id == preferences.appliedID }?.name ?? text(.nothingSelected)
     }
-    var status: String { !preferences.enabled ? "尚未开启" : pauseReason?.title ?? "正在播放" }
+    var status: String { !preferences.enabled ? text(.notEnabled) : pauseReason?.title(in: language) ?? text(.playing) }
     var isPlaying: Bool { preferences.enabled && pauseReason == nil }
     var previewAnimating: Bool { previewVisible && pauseReason == nil }
 
@@ -46,7 +56,7 @@ final class AppModel: ObservableObject {
         store = LibraryStore(root: directory)
         var initialError: String?
         do { try store.prepare(); state = try store.load() }
-        catch { state = LibraryState(); initialError = "读取壁纸库失败：\(error.localizedDescription)" }
+        catch { state = LibraryState(); initialError = TextKey.readLibraryError.string(in: .system, arguments: [error.localizedDescription]) }
         state.preferences.brightness = min(1, max(0.15, state.preferences.brightness))
         if BuiltinScene(rawValue: state.preferences.appliedID) == nil && !state.videos.contains(where: { $0.id == state.preferences.appliedID }) {
             state.preferences.appliedID = BuiltinScene.aurora.rawValue
@@ -54,8 +64,9 @@ final class AppModel: ObservableObject {
         }
         selectedID = state.preferences.appliedID
         errorMessage = initialError
-        engine.onPlaybackError = { [weak self] message in
-            self?.stop(); self?.errorMessage = "无法播放这个视频：\(message)"
+        engine.onPlaybackError = { [weak self] error in
+            guard let self else { return }
+            self.stop(); self.errorMessage = self.text(.playVideoError, self.describe(error))
         }
         if observeSystem { installObservers(); refreshLoginStatus() }
         refreshPowerState()
@@ -77,7 +88,7 @@ final class AppModel: ObservableObject {
             state.preferences = next; pauseReason = reason
             persist(); onStatusChange?()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = describe(error)
             if engine.windows.isEmpty { state.preferences.enabled = false; persist() }
         }
     }
@@ -93,6 +104,7 @@ final class AppModel: ObservableObject {
     }
     func updatePreferences(_ update: (inout Preferences) -> Void) {
         let oldAll = preferences.allDisplays
+        let oldLanguage = language
         update(&state.preferences)
         state.preferences.brightness = min(1, max(0.15, state.preferences.brightness))
         if preferences.enabled && oldAll != preferences.allDisplays {
@@ -101,24 +113,25 @@ final class AppModel: ObservableObject {
             engine.updateAppearance(preferences)
             refreshPowerState(); persist()
         }
+        if oldLanguage != language { onLanguageChange?() }
     }
     func mediaURL(_ filename: String) -> URL {
         store.mediaDirectory.appendingPathComponent((filename as NSString).lastPathComponent)
     }
     private func persist() {
         do { try store.save(state) }
-        catch { errorMessage = "保存设置失败：\(error.localizedDescription)" }
+        catch { errorMessage = text(.saveSettingsError, describe(error)) }
     }
 
     func chooseVideo() {
         guard !isImporting else { return }
         let panel = NSOpenPanel()
-        panel.title = "导入动态壁纸"
-        panel.message = "选择本地视频。导入后会保存一份副本，原文件不会被修改。"
+        panel.title = text(.importTitle)
+        panel.message = text(.importMessage)
         panel.allowedContentTypes = [.movie, .mpeg4Movie, .quickTimeMovie]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.prompt = "导入视频"
+        panel.prompt = text(.importVideo)
         panel.begin { [weak self] response in
             guard response == .OK else { return }
             Task { @MainActor in await self?.importVideos(panel.urls) }
@@ -131,7 +144,7 @@ final class AppModel: ObservableObject {
         var failures: [String] = []
         for url in urls {
             do { try await importVideo(url) }
-            catch { failures.append("\(url.lastPathComponent)：\(error.localizedDescription)") }
+            catch { failures.append("\(url.lastPathComponent): \(describe(error))") }
         }
         if !failures.isEmpty { errorMessage = failures.joined(separator: "\n") }
     }
@@ -143,7 +156,7 @@ final class AppModel: ObservableObject {
         let tracks = try await asset.loadTracks(withMediaType: .video)
         let duration = try await asset.load(.duration).seconds
         guard playable, let track = tracks.first, duration.isFinite, duration > 0 else {
-            throw NSError(domain: "LumaDesktop", code: 2, userInfo: [NSLocalizedDescriptionKey: "这不是可播放的视频，请使用 H.264 或 HEVC 编码的 MP4 / MOV。"])
+            throw WallpaperError.invalidVideo
         }
         let size = try await track.load(.naturalSize)
         let transform = try await track.load(.preferredTransform)
@@ -192,7 +205,7 @@ final class AppModel: ObservableObject {
             if selectedID == video.id { selectedID = BuiltinScene.aurora.rawValue }
             try FileManager.default.removeItem(at: mediaURL(video.fileName))
             if let name = video.thumbnailName { try? FileManager.default.removeItem(at: mediaURL(name)) }
-        } catch { errorMessage = "移除视频时遇到问题：\(error.localizedDescription)" }
+        } catch { errorMessage = text(.removeVideoError, describe(error)) }
     }
 
     func setLoginEnabled(_ enabled: Bool) {
@@ -200,7 +213,7 @@ final class AppModel: ObservableObject {
             if enabled { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
         } catch {
-            errorMessage = "修改登录启动失败。可将应用移到「应用程序」后重试。\n\(error.localizedDescription)"
+            errorMessage = text(.loginError, describe(error))
         }
         refreshLoginStatus()
     }
@@ -246,6 +259,13 @@ final class AppModel: ObservableObject {
         })
         observers.append(NotificationCenter.default.addObserver(forName: Notification.Name.NSProcessInfoPowerStateDidChange, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.refreshPowerState() }
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: NSLocale.currentLocaleDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.language == .system else { return }
+                self.objectWillChange.send()
+                self.onLanguageChange?()
+            }
         })
         powerTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshPowerState() }
